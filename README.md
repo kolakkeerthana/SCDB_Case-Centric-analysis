@@ -1,4 +1,5 @@
 # ⚖️ Supreme Court Case Operations & Decision Analytics - End-to-End BI Solution
+<img width="291" height="440" alt="image" src="https://github.com/user-attachments/assets/6ca62e35-0194-456c-9038-21d41bae51be" />
 
 📌 Introduction
 

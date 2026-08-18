@@ -1,0 +1,1025 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# Ingestion
+
+# In[2]:
+
+
+import pandas as pd
+import numpy as np
+Case_Centred = pd.read_csv("/Users/keerthanakola/Downloads/SCDB_2025_01_caseCentered_Citation.csv.zip")
+
+
+# Data Profiling
+
+# In[4]:
+
+
+Case_Centred.head()
+
+
+# In[5]:
+
+
+Case_Centred.tail()
+
+
+# Upon displaying the head and tail of the data we realise that there are above 9k cases arranged yearly and their objectives. 
+
+# In[7]:
+
+
+Case_Centred.columns
+
+
+# In[8]:
+
+
+Case_Centred.info()
+
+
+# Handling Missing values, Duplicates & Data types
+
+# Uniquness of the cases, as in to verify each case has its own id and no case is dependent on the other. 1 row = 1 case theory with the relationship of each case is determined in the following queries. 
+
+# In[9]:
+
+
+id_columns = [
+    "caseId",
+    "docketId",
+    "caseIssuesId",
+    "voteId"
+]
+
+for col in id_columns:
+    print(f"{col}: {Case_Centred[col].nunique()} unique values")
+
+
+# In[10]:
+
+
+Case_Centred.groupby("caseId").size().value_counts().sort_index()
+
+
+# In[28]:
+
+
+Case_Centred.groupby("docketId").size().value_counts().sort_index()
+
+
+# In[30]:
+
+
+Case_Centred.groupby("caseIssuesId").size().value_counts().sort_index()
+
+
+# Here, we are analysing the patterns over time and notable trends or anamolies that warrant furhter investigation
+# which involves understanding caseload, decision-making, case-processing time, and voting patterns over time.
+
+# In[ ]:
+
+
+
+
+
+# 
+
+# In[37]:
+
+
+case_analysis = Case_Centred.copy()
+
+
+# In[39]:
+
+
+data_profile = pd.DataFrame({
+    "column": Case_Centred.columns,
+    "data_type": Case_Centred.dtypes.astype(str),
+    "non_null_count": Case_Centred.notna().sum().values,
+    "missing_count": Case_Centred.isna().sum().values,
+    "missing_percentage": (
+        Case_Centred.isna().mean().values * 100
+    ).round(2),
+    "unique_values": Case_Centred.nunique().values
+})
+
+data_profile
+
+
+# In[45]:
+
+
+data_profile.sort_values(
+    "missing_percentage",
+    ascending=False
+)
+
+
+# In[51]:
+
+
+case_analysis_columns = [
+    "caseId",
+    "dateDecision",
+    "dateArgument",
+    "dateRearg",
+    "term",
+    "chief",
+    "naturalCourt",
+    "decisionType",
+    "issue",
+    "issueArea",
+    "jurisdiction",
+    "caseDisposition",
+    "partyWinning",
+    "decisionDirection",
+    "decisionDirectionDissent",
+    "declarationUncon",
+    "precedentAlteration",
+    "voteUnclear",
+    "splitVote",
+    "majVotes",
+    "minVotes"
+]
+
+
+# In[53]:
+
+
+case_analysis = Case_Centred[case_analysis_columns].copy()
+
+
+# In[59]:
+
+
+case_analysis.shape
+
+
+# to verify our set has the right columns
+
+# Interrms of dates: to change the data type to date format and verifying the minimum and maximum dates while checking for invalid data (where the decision time comes in before any argument)
+
+# In[63]:
+
+
+date_columns = [
+    "dateDecision",
+    "dateArgument",
+    "dateRearg"
+]
+
+for col in date_columns:
+    case_analysis[col] = pd.to_datetime(case_analysis[col], errors="coerce")
+
+
+# In[ ]:
+
+
+
+
+
+# In[65]:
+
+
+case_analysis[date_columns].dtypes
+
+
+# In[67]:
+
+
+case_analysis["dateDecision"].min(), case_analysis["dateDecision"].max()
+
+
+# In[69]:
+
+
+case_analysis["dateArgument"].min(), case_analysis["dateArgument"].max()
+
+
+# In[71]:
+
+
+invalid_dates = case_analysis[
+    case_analysis["dateArgument"].notna() &
+    (case_analysis["dateArgument"] > case_analysis["dateDecision"])
+]
+
+invalid_dates.shape
+
+
+# In[82]:
+
+
+coded_columns = [
+    "decisionType",
+    "issue",
+    "issueArea",
+    "jurisdiction",
+    "caseDisposition",
+    "partyWinning",
+    "decisionDirection",
+    "decisionDirectionDissent",
+    "declarationUncon",
+    "precedentAlteration",
+    "voteUnclear",
+    "splitVote",
+    "majVotes",
+    "minVotes"
+]
+
+for col in coded_columns:
+    print("\n====================")
+    print(col)
+    print("====================")
+    print(case_analysis[col].value_counts(dropna=False).sort_index())
+
+
+# In[84]:
+
+
+case_analysis["splitVote"].value_counts(dropna=False)
+
+
+# To calculate voting or to analyse voting patterns, we cannot proceed with it as a variable for determining unanimous/split decisions. We would be creating a fesute which is vote_margin caluclated using maj and min votes and derive a percentage
+
+# In[86]:
+
+
+case_analysis["vote_margin"] = case_analysis["majVotes"] - case_analysis["minVotes"]
+
+
+# In[88]:
+
+
+print(case_analysis["vote_margin"])
+
+
+# In[95]:
+
+
+case_analysis["majority_vote_pct"] = (
+    case_analysis["majVotes"] /
+    (case_analysis["majVotes"] + case_analysis["minVotes"])
+) * 100
+
+
+# In[97]:
+
+
+case_analysis["majority_vote_pct"].describe()
+
+
+# In[107]:
+
+
+case_analysis["decision_year"] = case_analysis["dateDecision"].dt.year
+case_analysis["decision_year"].value_counts().sort_index()
+
+
+# Question 1 CASE LOAD ANALYSIS
+
+# In[109]:
+
+
+case_load = (
+    case_analysis.groupby("decision_year")["caseId"]
+      .nunique()
+      .reset_index(name="case_count")
+)
+
+
+# In[111]:
+
+
+case_load.sort_values("case_count", ascending=False).head(10)
+
+
+# In[131]:
+
+
+case_analysis.columns
+
+
+# Question 2: CASE PROCESSING TIME
+# we should be calculating the processing time with eht available argumanent and decision dates.
+
+# In[125]:
+
+
+case_analysis["processing_days"] = (
+    case_analysis["dateDecision"] -
+    case_analysis["dateArgument"]
+).dt.days
+
+
+# In[133]:
+
+
+print(case_analysis["processing_days"])
+
+
+# In[141]:
+
+
+case_analysis["processing_days"].describe()
+
+
+# In[143]:
+
+
+case_analysis[case_analysis["processing_days"] < 0].shape
+
+
+# this advantageous that we do not have any negative values which says the date is absolutely true and right
+
+# In[146]:
+
+
+case_analysis["processing_category"] = pd.cut(
+    case_analysis["processing_days"],
+    bins=[-1, 30, 90, 180, 365, float("inf")],
+    labels=[
+        "0–30 days",
+        "31–90 days",
+        "91–180 days",
+        "181–365 days",
+        "365+ days"
+    ]
+)
+
+
+# Question 3: VOTING PATTERN ANALYSIS
+
+# In[149]:
+
+
+voting_summary = case_analysis[
+    ["majVotes", "minVotes", "vote_margin", "majority_vote_pct"]
+].describe()
+
+voting_summary
+
+
+# In[151]:
+
+
+case_analysis["partyWinning"].value_counts(dropna=False).sort_index()
+
+
+# In[153]:
+
+
+quality_report = pd.DataFrame({
+    "column": case_analysis.columns,
+    "data_type": case_analysis.dtypes.astype(str).values,
+    "missing_count": case_analysis.isna().sum().values,
+    "missing_percentage": (
+        case_analysis.isna().mean().values * 100
+    ),
+    "unique_values": case_analysis.nunique().values
+})
+
+quality_report = quality_report.sort_values(
+    "missing_percentage",
+    ascending=False
+)
+
+quality_report
+
+
+# The source dataset contains coded categorical variables. I used the official SCDB codebook to validate the semantic meaning of each code before transforming the coded values into human-readable analytical dimensions
+
+# In[156]:
+
+
+case_analysis.columns
+
+
+# Based on the data available online in the website we would be mapping the data
+
+# In[163]:
+
+
+issue_area_map = {
+    1: "Criminal Procedure",
+    2: "Civil Rights",
+    3: "First Amendment",
+    4: "Due Process",
+    5: "Privacy",
+    6: "Attorneys",
+    7: "Unions",
+    8: "Economic Activity",
+    9: "Judicial Power",
+    10: "Federalism",
+    11: "Interstate Relations",
+    12: "Federal Taxation",
+    13: "Miscellaneous",
+    14: "Private Action"
+}
+
+case_analysis["issueArea_name"] = (
+    case_analysis["issueArea"].map(issue_area_map)
+)
+
+
+# verifyingt he data
+
+# In[165]:
+
+
+case_analysis[
+    ["issueArea", "issueArea_name"]
+].drop_duplicates().sort_values("issueArea")
+
+
+# In[167]:
+
+
+decision_direction_map = {
+    1: "Conservative",
+    2: "Liberal",
+    3: "Unspecifiable"
+}
+
+case_analysis["decisionDirection_name"] = (
+    case_analysis["decisionDirection"]
+    .map(decision_direction_map)
+)
+
+
+# vverification
+
+# In[169]:
+
+
+case_analysis[
+    ["decisionDirection", "decisionDirection_name"]
+].drop_duplicates().sort_values("decisionDirection")
+
+
+# In[173]:
+
+
+case_analysis["decisionDirection_name"].value_counts(
+    dropna=False
+)
+
+
+# In[175]:
+
+
+declaration_uncon_map = {
+    1: "No Declaration",
+    2: "Act of Congress",
+    3: "State/Territorial Law",
+    4: "Municipal/Local Ordinance"
+}
+
+case_analysis["declarationUncon_name"] = (
+    case_analysis["declarationUncon"]
+    .map(declaration_uncon_map)
+)
+
+
+# In[177]:
+
+
+case_analysis[
+    ["declarationUncon", "declarationUncon_name"]
+].drop_duplicates().sort_values("declarationUncon")
+
+
+# In[179]:
+
+
+coded_columns = [
+    "decisionType",
+    "issue",
+    "issueArea",
+    "jurisdiction",
+    "caseDisposition",
+    "partyWinning",
+    "decisionDirection",
+    "decisionDirectionDissent",
+    "declarationUncon",
+    "precedentAlteration",
+    "voteUnclear",
+    "splitVote"
+]
+
+for col in coded_columns:
+    print("\n" + "=" * 70)
+    print(col)
+    print("=" * 70)
+    print(
+        case_analysis[col]
+        .value_counts(dropna=False)
+        .sort_index()
+    )
+
+
+# MApping the columsn with the data available on the website.
+
+# In[181]:
+
+
+decision_type_map = {
+    1: "Opinion of the Court",
+    2: "Per Curiam - No Oral Argument",
+    4: "Decree",
+    5: "Equally Divided Vote",
+    6: "Per Curiam - Oral Argument",
+    7: "Judgment of the Court"
+}
+
+case_analysis["decisionType_name"] = (
+    case_analysis["decisionType"].map(decision_type_map)
+)
+
+
+# In[183]:
+
+
+issue_area_map = {
+    1: "Criminal Procedure",
+    2: "Civil Rights",
+    3: "First Amendment",
+    4: "Due Process",
+    5: "Privacy",
+    6: "Attorneys",
+    7: "Unions",
+    8: "Economic Activity",
+    9: "Judicial Power",
+    10: "Federalism",
+    11: "Interstate Relations",
+    12: "Federal Taxation",
+    13: "Miscellaneous",
+    14: "Private Action"
+}
+
+case_analysis["issueArea_name"] = (
+    case_analysis["issueArea"].map(issue_area_map)
+)
+
+
+# In[185]:
+
+
+jurisdiction_map = {
+    1: "Certiorari",
+    2: "Appeal",
+    4: "Certification",
+    5: "Docketing Fee",
+    6: "Rehearing / Reargument",
+    7: "Injunction",
+    8: "Mandamus",
+    9: "Original Jurisdiction",
+    12: "Stay",
+    14: "Writ of Habeas Corpus",
+    15: "Unspecified / Other"
+}
+
+case_analysis["jurisdiction_name"] = (
+    case_analysis["jurisdiction"].map(jurisdiction_map)
+)
+
+
+# In[187]:
+
+
+case_disposition_map = {
+    1: "Stay / Petition / Motion Granted",
+    2: "Affirmed",
+    3: "Reversed",
+    4: "Reversed and Remanded",
+    5: "Vacated and Remanded",
+    6: "Affirmed and Reversed/Vacated in Part",
+    7: "Affirmed and Reversed/Vacated in Part and Remanded",
+    8: "Vacated",
+    9: "Petition Denied / Appeal Dismissed",
+    10: "Certification to Lower Court",
+    11: "No Disposition"
+}
+
+case_analysis["caseDisposition_name"] = (
+    case_analysis["caseDisposition"].map(case_disposition_map)
+)
+
+
+# In[189]:
+
+
+party_winning_map = {
+    0: "Petitioner Did Not Win",
+    1: "Petitioner Won",
+    2: "Outcome Unclear"
+}
+
+case_analysis["partyWinning_name"] = (
+    case_analysis["partyWinning"].map(party_winning_map)
+)
+
+
+# In[191]:
+
+
+decision_direction_map = {
+    1: "Conservative",
+    2: "Liberal",
+    3: "Unspecifiable"
+}
+
+case_analysis["decisionDirection_name"] = (
+    case_analysis["decisionDirection"]
+    .map(decision_direction_map)
+)
+
+
+# In[193]:
+
+
+dissent_direction_map = {
+    0: "Dissent Opposite Direction",
+    1: "Majority and Dissent Same Direction"
+}
+
+case_analysis["decisionDirectionDissent_name"] = (
+    case_analysis["decisionDirectionDissent"]
+    .map(dissent_direction_map)
+)
+
+
+# In[195]:
+
+
+declaration_uncon_map = {
+    1: "No Declaration",
+    2: "Act of Congress Declared Unconstitutional",
+    3: "State/Territorial Law Declared Unconstitutional",
+    4: "Municipal/Local Ordinance Declared Unconstitutional"
+}
+
+case_analysis["declarationUncon_name"] = (
+    case_analysis["declarationUncon"]
+    .map(declaration_uncon_map)
+)
+
+
+# In[197]:
+
+
+precedent_map = {
+    0: "No Formal Precedent Alteration",
+    1: "Precedent Formally Altered"
+}
+
+case_analysis["precedentAlteration_name"] = (
+    case_analysis["precedentAlteration"].map(precedent_map)
+)
+
+
+# In[205]:
+
+
+mapped_columns = [
+    "decisionType",
+    "issueArea",
+    "jurisdiction",
+    "caseDisposition",
+    "partyWinning",
+    "decisionDirection",
+    "decisionDirectionDissent",
+    "declarationUncon",
+    "precedentAlteration",
+    "voteUnclear"
+]
+
+for col in mapped_columns:
+
+    mapped_col = col + "_name"
+
+    print("\n" + "=" * 60)
+    print(col)
+    print("=" * 60)
+
+    print(
+        case_analysis[[col, mapped_col]]
+        .drop_duplicates()
+        .sort_values(col)
+        .to_string(index=False)
+    )
+
+
+# In[201]:
+
+
+voteUnclear_map = {
+    0: "Clear Vote",
+    1: "Unclear Vote"
+}
+
+case_analysis["voteUnclear_name"] = (
+    case_analysis["voteUnclear"].map(voteUnclear_map)
+)
+
+
+# In[203]:
+
+
+print(
+    case_analysis[
+        ["voteUnclear", "voteUnclear_name"]
+    ]
+    .drop_duplicates()
+    .sort_values("voteUnclear")
+    .to_string(index=False)
+)
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# Inspecting our columns
+
+# In[210]:
+
+
+case_analysis.columns.tolist()
+
+
+# In[212]:
+
+
+mapped_columns = [
+    "decisionType_name",
+    "issueArea_name",
+    "jurisdiction_name",
+    "caseDisposition_name",
+    "partyWinning_name",
+    "decisionDirection_name",
+    "decisionDirectionDissent_name",
+    "declarationUncon_name",
+    "precedentAlteration_name",
+    "voteUnclear_name"
+]
+
+case_analysis[mapped_columns].head()
+
+
+# In[217]:
+
+
+for col in mapped_columns:
+    original_col = col.replace("_name", "")
+    
+    print("=" * 70)
+    print(f"{original_col} → {col}")
+    
+    print(
+        case_analysis[[original_col, col]]
+        .drop_duplicates()
+        .sort_values(original_col)
+        .to_string(index=False)
+    )
+
+
+# Copying the data in another tabelt o export and perform visualisation in Tableau
+
+# In[219]:
+
+
+SupremeCourtCaseAnalysis = case_analysis.copy()
+
+
+# In[223]:
+
+
+SupremeCourtCaseAnalysis.shape
+
+
+# In[ ]:
+
+
+
+
+
+# Performing EDA
+
+# How has Supreme Court case volume changed over time?
+
+# In[231]:
+
+
+cases_by_year = (
+    SupremeCourtCaseAnalysis
+    .groupby("decision_year")
+    .size()
+    .reset_index(name="case_count")
+)
+
+cases_by_year.head()
+
+
+# In[233]:
+
+
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(12, 6))
+
+plt.plot(
+    cases_by_year["decision_year"],
+    cases_by_year["case_count"]
+)
+
+plt.xlabel("Decision Year")
+plt.ylabel("Number of Cases")
+plt.title("Supreme Court Cases Decided by Year")
+
+plt.show()
+
+
+# Processing time
+
+# How long does it take for cases to move from oral argument to decision?
+
+# In[237]:
+
+
+processing_summary = (
+    SupremeCourtCaseAnalysis["processing_days"]
+    .describe()
+)
+
+processing_summary
+
+
+# In[239]:
+
+
+processing_by_year = (
+    SupremeCourtCaseAnalysis
+    .groupby("decision_year")["processing_days"]
+    .agg(
+        ["count", "mean", "median", "min", "max"]
+    )
+    .reset_index()
+)
+
+processing_by_year.head()
+
+
+# Processing time by issue
+
+# In[242]:
+
+
+processing_by_issue = (
+    SupremeCourtCaseAnalysis
+    .groupby("issueArea_name")["processing_days"]
+    .agg(
+        ["count", "mean", "median"]
+    )
+    .sort_values("median", ascending=False)
+    .reset_index()
+)
+
+processing_by_issue
+
+
+# Votinganalysis
+
+# In[244]:
+
+
+SupremeCourtCaseAnalysis[
+    ["majVotes", "minVotes", "vote_margin", "majority_vote_pct"]
+].describe()
+
+
+# In[247]:
+
+
+voting_by_issue = (
+    SupremeCourtCaseAnalysis
+    .groupby("issueArea_name")
+    .agg(
+        cases=("caseId", "count"),
+        avg_majority_votes=("majVotes", "mean"),
+        avg_minority_votes=("minVotes", "mean"),
+        avg_vote_margin=("vote_margin", "mean"),
+        avg_majority_pct=("majority_vote_pct", "mean")
+    )
+    .sort_values("avg_vote_margin")
+    .reset_index()
+)
+
+voting_by_issue
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# Decision outcomes
+
+# In[252]:
+
+
+outcomes = (
+    SupremeCourtCaseAnalysis["caseDisposition_name"]
+    .value_counts()
+    .reset_index()
+)
+
+outcomes.columns = [
+    "case_disposition",
+    "case_count"
+]
+
+outcomes
+
+
+# petitioner outcomes:
+
+# In[257]:
+
+
+petitioner_outcomes = (
+    SupremeCourtCaseAnalysis["partyWinning_name"]
+    .value_counts(dropna=False)
+    .reset_index()
+)
+
+petitioner_outcomes.columns = [
+    "outcome",
+    "case_count"
+]
+
+petitioner_outcomes
+
+
+# by issue area
+
+# In[260]:
+
+
+win_rate_by_issue = (
+    SupremeCourtCaseAnalysis
+    .groupby("issueArea_name")
+    .agg(
+        total_cases=("caseId", "count"),
+        petitioner_wins=(
+            "partyWinning_name",
+            lambda x: (x == "Petitioner Won").sum()
+        )
+    )
+)
+
+win_rate_by_issue["petitioner_win_rate"] = (
+    win_rate_by_issue["petitioner_wins"]
+    / win_rate_by_issue["total_cases"]
+    * 100
+)
+
+win_rate_by_issue.sort_values(
+    "petitioner_win_rate",
+    ascending=False
+)
+
+
+# In[264]:
+
+
+tableau_data = SupremeCourtCaseAnalysis.copy()
+tableau_data.to_csv(
+    "SupremeCourtCaseAnalysis_Tableau.csv",
+    index=False
+)
+
+
+# In[ ]:
+
+
+
+

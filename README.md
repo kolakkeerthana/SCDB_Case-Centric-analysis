@@ -1,61 +1,4 @@
-# Supreme Court Case Operations & Decision Analytics — End-to-End BI Solution
-To understand the judgement patterns overtime
-
-
-Problem Statement
-How has the Supreme Court's caseload, decision-making, case-processing time, and voting patterns changed over time, and where are there notable trends or anomalies that warrant further investigation?
-
-Source : http://scdb.wustl.edu/data.php
-
-
-the process would follow this way 
-SCDB Data
-       ↓
-Data Profiling
-       ↓
-Data Cleaning & Validation
-       ↓
-SQL Analytical Layer
-       ↓
-Statistical / Exploratory Analysis
-       ↓
-Tableau Dashboards
-       ↓
-Insights & Recommendations
-
-Now to proceed with the problem statement we would answering the folowing questions
-Question 1 — Caseload
-
-How has the Court's caseload changed over time?
-
-Question 2 — Case processing
-
-How long does it take for cases to move from argument to decision?
-
-Question 3 — Case outcomes
-
-What types of cases and issue areas have different decision outcomes?
-
-Question 4 — Decision alignment
-
-How frequently are decisions unanimous versus divided, and how does this vary over time and issue area?
-
-Question 5 — Anomalies and data quality
-
-Where do we see unusual processing times, voting patterns, or data-quality problems?
-
-Data Profiling
-<img width="2266" height="702" alt="image" src="https://github.com/user-attachments/assets/a1d47a29-1ecd-4daf-815b-afe99c73066a" />
-
-Data cleaning
-
-
-
-Performing EDA
-
-How has Supreme Court case volume changed over time?
-
-# ⚖️ Supreme Court Case Operations & Decision Analytics — End-to-End BI Solution
+# ⚖️ Supreme Court Case Operations & Decision Analytics - End-to-End BI Solution
 
 📌 Introduction
 
@@ -131,9 +74,16 @@ Data is now clean and ready for exploratory analysis.
 Grouped cases by `decision_year` and counted unique `caseId`s to trace how the Court's annual case volume has shifted across decades.
 🎯 *Insight: Caseload is not flat over time — certain periods show markedly higher or lower volume.*
 
+<img width="2110" height="1112" alt="image" src="https://github.com/user-attachments/assets/748bc0b6-12db-4149-8981-b6fb60a56af8" />
+
 **2. Case Processing Time**
 Calculated `processing_days` between argument and decision, summarized overall and by `decision_year` (count, mean, median, min, max) and by `issueArea_name` (count, mean, median).
 🎯 *Insight: Typical processing time varies meaningfully by issue area, and outlier cases can take far longer than the median.*
+
+<img width="960" height="782" alt="image" src="https://github.com/user-attachments/assets/e5952186-ddbb-462c-9916-eb889bd04ad6" />
+
+<img width="760" height="978" alt="image" src="https://github.com/user-attachments/assets/268fa7a5-32a7-4794-8d7b-93e5e58f0c67" />
+
 
 **3. Voting Pattern Analysis**
 Summarized `majVotes`, `minVotes`, `vote_margin`, and `majority_vote_pct` overall and by issue area to compare how consensus-driven vs. divided decisions are across topics.
@@ -172,7 +122,6 @@ Computed `total_cases`, `petitioner_wins`, and `petitioner_win_rate` grouped by 
 An end-to-end BI project cleaning, analyzing, and visualizing Supreme Court Database (SCDB) case data in Python to uncover caseload, processing-time, and voting-pattern insights, feeding into Tableau dashboards.
 
 **Data Source:** [Supreme Court Database (SCDB)](http://scdb.wustl.edu/data.php)
-<img width="2110" height="1112" alt="image" src="https://github.com/user-attachments/assets/748bc0b6-12db-4149-8981-b6fb60a56af8" />
 
 
 

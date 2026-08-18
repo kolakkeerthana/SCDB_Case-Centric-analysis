@@ -5,6 +5,9 @@ To understand the judgement patterns overtime
 Problem Statement
 How has the Supreme Court's caseload, decision-making, case-processing time, and voting patterns changed over time, and where are there notable trends or anomalies that warrant further investigation?
 
+Source : http://scdb.wustl.edu/data.php
+
+
 the process would follow this way 
 SCDB Data
        ↓
@@ -41,7 +44,7 @@ Question 5 — Anomalies and data quality
 
 Where do we see unusual processing times, voting patterns, or data-quality problems?
 
-We have the following columns in our table 
+Data Profiling
 <img width="2266" height="702" alt="image" src="https://github.com/user-attachments/assets/a1d47a29-1ecd-4daf-815b-afe99c73066a" />
 
-
+Data cleaning

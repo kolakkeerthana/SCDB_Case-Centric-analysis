@@ -48,3 +48,13 @@ Data Profiling
 <img width="2266" height="702" alt="image" src="https://github.com/user-attachments/assets/a1d47a29-1ecd-4daf-815b-afe99c73066a" />
 
 Data cleaning
+
+
+
+Performing EDA
+
+How has Supreme Court case volume changed over time?
+<img width="2110" height="1112" alt="image" src="https://github.com/user-attachments/assets/748bc0b6-12db-4149-8981-b6fb60a56af8" />
+
+
+
